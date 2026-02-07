@@ -9,4 +9,11 @@ interface SncfApiService {
     suspend fun searchPlaces(
         @Query("q") query: String
     ): Response<PlaceResponse>
+
+    @GET("https://api.sncf.com/v1/coverage/sncf/journeys")
+    suspend fun getJourneys(
+        @Query("from") fromId: String,
+        @Query("to") toId: String,
+        @Query("datetime") datetime: String? = null
+    ): Response<JourneyResponse>
 }

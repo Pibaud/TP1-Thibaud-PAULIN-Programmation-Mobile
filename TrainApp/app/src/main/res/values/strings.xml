@@ -3,4 +3,7 @@
     <string name="search_welcome_message">Quelle sera votre prochaine destination ?</string>
     <string name="search_from_label">Départ</string>
     <string name="search_to_label">Arrivée</string>
+    <string name="search_today">Aujourd\'hui</string>
+    <string name="search_next_time">Trajets suivants</string>
+    <string name="search_prev_time">Trajets précédents</string>
 </resources>

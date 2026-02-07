@@ -2,26 +2,30 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp">
 
     <TextView
+        style="@style/Title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/search_welcome_message"/>
 
     <TextView
+        style="@style/Text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/search_from_label"/>
 
     <AutoCompleteTextView
+        android:textColor="@color/black"
             android:id="@+id/auto_complete_from"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:completionThreshold="1" />
+            android:layout_height="wrap_content"/>
 
     <TextView
+        style="@style/Text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/search_to_label"/>
@@ -31,5 +35,32 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:completionThreshold="1" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_select_date"
+        style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/search_today"
+        app:icon="@drawable/outline_calendar_month_24" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/search_prev_time"
+        android:id="@+id/btn_prev_time"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_journeys"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/search_next_time"
+        android:id="@+id/btn_next_time"/>
 
 </LinearLayout>
