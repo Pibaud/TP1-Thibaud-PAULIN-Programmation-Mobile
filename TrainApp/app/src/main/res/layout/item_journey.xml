@@ -3,15 +3,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    android:layout_marginVertical="8dp"
+    android:layout_marginHorizontal="4dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -27,15 +29,16 @@
                     android:id="@+id/tv_departure_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold"
+                    android:textColor="@color/main_blue"
                     android:text="14:54" />
                 <TextView
                     android:id="@+id/tv_departure_station"
                     android:layout_width="120dp"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:textColor="#757575"
+                    android:textSize="13sp"
+                    android:textColor="#666666"
                     android:text="Montpellier St-Roch" />
             </LinearLayout>
 
@@ -44,9 +47,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_white_rounded"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
                 android:text="1h55"
-                android:textColor="#757575" />
-
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/black" />
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -57,32 +65,35 @@
                     android:id="@+id/tv_arrival_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold"
+                    android:textColor="@color/main_blue"
                     android:text="16:49" />
                 <TextView
                     android:id="@+id/tv_arrival_station"
                     android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:gravity="end"
-                    android:textSize="12sp"
-                    android:textColor="#757575"
+                    android:textSize="13sp"
+                    android:textColor="#666666"
                     android:text="Lyon Part Dieu" />
             </LinearLayout>
         </RelativeLayout>
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#E0E0E0"
-            android:layout_marginVertical="12dp" />
+            android:layout_height="2dp"
+            android:background="@color/accent_orange"
+            android:alpha="0.3"
+            android:layout_marginVertical="16dp" />
 
         <TextView
             android:id="@+id/tv_train_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="TGV INOUI n°9864"
-            android:textColor="@color/black"/>
+            android:textStyle="bold"
+            android:textColor="@color/main_blue"/>
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

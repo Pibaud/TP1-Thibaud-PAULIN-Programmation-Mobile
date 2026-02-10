@@ -7,6 +7,11 @@ import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import android.content.Context
 import com.example.trainapp.R
+import androidx.core.text.HtmlCompat
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import android.view.LayoutInflater
+import android.widget.LinearLayout
+import android.view.Gravity
 import com.example.trainapp.data.repository.TrainRepository
 import android.widget.Button
 import android.view.View
@@ -19,6 +24,8 @@ import com.example.trainapp.di.RetrofitClient
 import com.example.trainapp.ui.viewmodel.TrainViewModel
 import kotlinx.coroutines.launch
 import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
+import com.example.trainapp.data.api.Journey
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.CompositeDateValidator
 import com.google.android.material.datepicker.DateValidatorPointBackward
@@ -42,15 +49,28 @@ class Search : AppCompatActivity() { // activity ne suffisait pas pour utiliser 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
+        val titleView = findViewById<TextView>(R.id.tv_welcome_title)
+        val rawHtml = getString(R.string.search_welcome_message)
+        titleView.text = HtmlCompat.fromHtml(rawHtml, HtmlCompat.FROM_HTML_MODE_LEGACY) // pour mettre la fin du titre en couleur
+
+        val rvJourneys = findViewById<RecyclerView>(R.id.rv_journeys)
+
+        journeyAdapter = JourneyAdapter { selectedJourney ->
+            showJourneyDetails(selectedJourney)
+        }
+
+        rvJourneys.layoutManager = LinearLayoutManager(this)
+        rvJourneys.adapter = journeyAdapter
+
         findViewById<Button>(R.id.btn_next_time).setOnClickListener {
-            viewModel.shiftTime(3) { newTimestamp ->
+            viewModel.loadNext { newTimestamp ->
                 showDateChangeAlert(newTimestamp)
             }
         }
 
         findViewById<Button>(R.id.btn_prev_time).setOnClickListener {
             viewModel.shiftTime(-3) { newTimestamp ->
-                showDateChangeAlert(newTimestamp)
+                showDateChangeAlert(newTimestamp) // pas de prev ici car l'api indique les trains qui ARRIVENT avant et pas ceyx qui PARTENT avant
             }
         }
 
@@ -65,16 +85,34 @@ class Search : AppCompatActivity() { // activity ne suffisait pas pour utiliser 
             showDatePicker()
         }
 
-        val rvJourneys = findViewById<RecyclerView>(R.id.rv_journeys)
-        journeyAdapter = JourneyAdapter()
-        rvJourneys.layoutManager = LinearLayoutManager(this)
-        rvJourneys.adapter = journeyAdapter
-
         val autoFrom = findViewById<AutoCompleteTextView>(R.id.auto_complete_from)
         val autoTo = findViewById<AutoCompleteTextView>(R.id.auto_complete_to)
 
         setupAutoComplete(autoFrom)
         setupAutoComplete(autoTo)
+
+        findViewById<View>(R.id.btn_swap).setOnClickListener {
+            val autoFrom = findViewById<AutoCompleteTextView>(R.id.auto_complete_from)
+            val autoTo = findViewById<AutoCompleteTextView>(R.id.auto_complete_to)
+
+            val tempText = autoFrom.text.toString()
+            val tempId = fromId
+
+            autoFrom.setText(autoTo.text.toString(), false)
+            fromId = toId
+
+            autoTo.setText(tempText, false)
+            toId = tempId
+
+            autoFrom.clearFocus()
+            autoTo.clearFocus()
+            hideKeyboard(it)
+
+            if (fromId != null && toId != null) {
+                viewModel.clearHistory()
+                searchJourneys()
+            }
+        }
 
         lifecycleScope.launch {
             viewModel.journeys.collect { results ->
@@ -178,13 +216,11 @@ private fun showDatePicker() {
         .build()
 
     datePicker.addOnPositiveButtonClickListener { selection ->
-        val sdf = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
         val displayFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
         findViewById<Button>(R.id.btn_select_date).text = displayFormat.format(Date(selection))
 
         val date = Date(selection)
-        val formattedDate = sdf.format(date)
 
         findViewById<Button>(R.id.btn_select_date).text = displayFormat.format(date)
 
@@ -213,18 +249,14 @@ private fun showDatePicker() {
             val hour = picker.hour
             val minute = picker.minute
 
-            // Mise à jour de l'UI
             val formattedTime = String.format("%02d:%02d", hour, minute)
             findViewById<Button>(R.id.btn_select_time).text = formattedTime
 
-            // Mise à jour du ViewModel
             viewModel.setTime(hour, minute)
 
-            // Si aucune date n'était sélectionnée, on prend aujourd'hui par défaut pour lancer la recherche
             if (viewModel.selectedTimestamp == null) {
                 val today = MaterialDatePicker.todayInUtcMilliseconds()
                 viewModel.updateDateTimeFromComponents(today, hour, minute)
-                // Mise à jour visuelle du bouton date aussi
                 val df = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                 findViewById<Button>(R.id.btn_select_date).text = df.format(Date(today))
             }
@@ -244,6 +276,8 @@ private fun showDatePicker() {
                 val formatted = sdf.format(Date(newTimestamp))
                 viewModel.setDateTime(formatted, newTimestamp)
 
+                viewModel.clearHistory()
+
                 val btnDate = findViewById<Button>(R.id.btn_select_date)
                 btnDate.text = displayFormat.format(Date(newTimestamp))
 
@@ -257,9 +291,62 @@ private fun showDatePicker() {
         val btnPrev = findViewById<View>(R.id.btn_prev_time)
         val btnNext = findViewById<View>(R.id.btn_next_time)
 
-        val visibility = if (fromId != null && toId != null && viewModel.selectedDateTime != null) View.VISIBLE else View.GONE
+        val visibility = if (fromId != null && toId != null) View.VISIBLE else View.GONE
 
         btnPrev.visibility = visibility
         btnNext.visibility = visibility
+    }
+
+    private fun showJourneyDetails(journey: Journey) {
+        val bottomSheetDialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_journey_details, null)
+        val container = view.findViewById<LinearLayout>(R.id.details_container)
+
+        // On parcourt toutes les sections pour construire l'affichage dynamique
+        for (section in journey.sections) {
+            // On ne s'intéresse qu'aux sections de transport public (Train, Bus) ou d'attente (Correspondance)
+            if (section.type == "public_transport") {
+                // Création dynamique d'une vue pour le train
+                val trainView = LayoutInflater.from(this).inflate(R.layout.item_section_train, container, false)
+
+                val tvDepTime = trainView.findViewById<TextView>(R.id.tv_section_dep_time)
+                val tvDepStation = trainView.findViewById<TextView>(R.id.tv_section_dep_station)
+                val tvArrTime = trainView.findViewById<TextView>(R.id.tv_section_arr_time)
+                val tvArrStation = trainView.findViewById<TextView>(R.id.tv_section_arr_station)
+                val tvInfo = trainView.findViewById<TextView>(R.id.tv_section_info)
+
+                // Formatage des heures (ex: 20260211T075300 -> 07:53)
+                tvDepTime.text = formatTime(section.departureDateTime)
+                tvArrTime.text = formatTime(section.arrivalDateTime)
+
+                tvDepStation.text = section.from?.name
+                tvArrStation.text = section.to?.name
+
+                // Ex: TER - K13 [cite: 92, 93]
+                val mode = section.displayInformations?.physicalMode ?: "Train"
+                val number = section.displayInformations?.headsign ?: ""
+                tvInfo.text = "$mode $number"
+
+                container.addView(trainView)
+            }
+            else if (section.type == "waiting" || section.type == "transfer") {
+                // Création dynamique d'une vue pour la correspondance
+                val transferView = TextView(this)
+                val durationMin = section.duration / 60
+                transferView.text = "⏱ Correspondance : ${durationMin} min"
+                transferView.setPadding(40, 20, 40, 20)
+                transferView.setTextColor(getColor(R.color.accent_orange))
+                transferView.gravity = Gravity.CENTER_VERTICAL
+                container.addView(transferView)
+            }
+        }
+
+        bottomSheetDialog.setContentView(view)
+        bottomSheetDialog.show()
+    }
+
+    private fun formatTime(isoDate: String): String {
+        if (isoDate.length < 13) return "..."
+        return "${isoDate.substring(9, 11)}:${isoDate.substring(11, 13)}"
     }
 }

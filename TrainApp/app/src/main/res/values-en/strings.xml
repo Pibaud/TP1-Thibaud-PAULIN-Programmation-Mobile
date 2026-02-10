@@ -1,3 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">TrainApp</string>
+    <string name="search_welcome_message"><![CDATA[What is your <font color="#FCA311">next journey</font> ?]]></string>
+    <string name="search_from_label">From</string>
+    <string name="search_to_label">To</string>
+    <string name="search_today">Today</string>
+    <string name="search_next_time">Next journeys</string>
+    <string name="search_prev_time">Previous journeys</string>
 </resources>

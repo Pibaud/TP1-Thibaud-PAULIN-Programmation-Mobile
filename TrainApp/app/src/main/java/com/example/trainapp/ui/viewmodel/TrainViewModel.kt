@@ -25,6 +25,8 @@ class TrainViewModel(private val repository: TrainRepository) : ViewModel() {
     var lastFromId: String? = null
     var lastToId: String? = null
 
+    private var nextLink: String? = null
+
     fun setFromTo(fromId: String?, toId: String?) {
         lastFromId = fromId
         lastToId = toId
@@ -91,17 +93,58 @@ class TrainViewModel(private val repository: TrainRepository) : ViewModel() {
 
     private val allJourneys = mutableListOf<Journey>()
 
-    fun findJourneys(fromId: String, toId: String) {
+    fun findJourneys(fromId: String, toId: String, dateTimeOverride: String? = null) {
+        val currentSelectedDate = selectedDateTime
+        val dateToUse = dateTimeOverride ?: selectedDateTime
+
         viewModelScope.launch {
-            val newResults = repository.getJourneys(fromId, toId, selectedDateTime)
+            try {
+                val result = repository.getJourneys(fromId, toId, dateToUse)
+                nextLink = result.links?.find { it.rel == "next" }?.href
 
-            allJourneys.addAll(newResults)
+                val newJourneys = result.journeys
+                val currentDayPrefix = currentSelectedDate?.substring(0, 8) // ainsi on compare les débuts du jour, pour rejeter un trajet du lendemain
+                val filteredJourneys = if (currentDayPrefix != null) {
+                    newJourneys.filter { journey ->
+                        journey.departureDateTime.startsWith(currentDayPrefix)
+                    }
+                } else {
+                    newJourneys
+                }
+                allJourneys.addAll(filteredJourneys)
 
-            val uniqueSortedJourneys = allJourneys
-                .distinctBy { it.departureDateTime }
-                .sortedBy { it.departureDateTime }
+                val uniqueSortedJourneys = allJourneys
+                    .distinctBy { it.departureDateTime }
+                    .sortedBy { it.departureDateTime }
 
-            _journeys.value = uniqueSortedJourneys
+                _journeys.value = uniqueSortedJourneys
+            } catch (e: Exception) {
+                android.util.Log.e("TrainViewModel", "Erreur : ${e.message}")
+            }
+        }
+    }
+
+    fun loadNext(onDateChangeDetected: (newDateLong: Long) -> Unit) {
+        nextLink?.let { url ->
+            val uri = android.net.Uri.parse(url)
+            val nextDateTime = uri.getQueryParameter("datetime")
+
+            if (nextDateTime != null) {
+                val sdfApi = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
+                val nextDate = sdfApi.parse(nextDateTime)
+
+                val calendarNext = Calendar.getInstance()
+                calendarNext.time = nextDate
+
+                val calendarCurrent = Calendar.getInstance()
+                calendarCurrent.timeInMillis = selectedTimestamp ?: System.currentTimeMillis()
+
+                if (calendarNext.get(Calendar.DAY_OF_YEAR) != calendarCurrent.get(Calendar.DAY_OF_YEAR)) {
+                    onDateChangeDetected(calendarNext.timeInMillis)
+                } else {
+                    findJourneys(lastFromId!!, lastToId!!, nextDateTime)
+                }
+            }
         }
     }
 

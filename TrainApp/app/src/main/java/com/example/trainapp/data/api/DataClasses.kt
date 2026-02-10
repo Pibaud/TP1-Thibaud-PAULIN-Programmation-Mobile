@@ -17,7 +17,14 @@ data class Place(
 
 data class JourneyResponse(
     @SerializedName("journeys")
-    val journeys: List<Journey>
+    val journeys: List<Journey>,
+    val links: List<Link>? = null
+)
+
+data class Link(
+    val href: String,
+    val rel: String, // les liens next ou prev
+    val type: String?
 )
 
 data class Journey(
@@ -26,13 +33,20 @@ data class Journey(
     val departureDateTime: String, // ex: 20260207T145400
     @SerializedName("arrival_date_time")
     val arrivalDateTime: String,
-    val sections: List<Section>
+    val sections: List<Section>,
+    @SerializedName("nb_transfers")
+    val nbTransfers: Int = 0
 )
 
 data class Section(
     val type: String,
-    val from: PlaceSummary?, // Contient l'id et le name du point de départ
-    val to: PlaceSummary?,   // Contient l'id et le name du point d'arrivée
+    val duration: Int,
+    @SerializedName("departure_date_time")
+    val departureDateTime: String,
+    @SerializedName("arrival_date_time")
+    val arrivalDateTime: String,
+    val from: PlaceSummary?,
+    val to: PlaceSummary?,
     @SerializedName("display_informations")
     val displayInformations: DisplayInfo?
 )
@@ -47,5 +61,7 @@ data class DisplayInfo(
     val direction: String, // Destination finale du train
     @SerializedName("commercial_mode")
     val commercialMode: String,
-    val headsign: String // Numéro du train (ex: 9864)
+    val headsign: String, // Numéro du train (ex: 9864)
+    @SerializedName("physical_mode")
+    val physicalMode: String?
 )
