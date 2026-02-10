@@ -9,6 +9,8 @@ import android.content.Context
 import com.example.trainapp.R
 import com.example.trainapp.data.repository.TrainRepository
 import android.widget.Button
+import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.trainapp.ui.adapter.JourneyAdapter
@@ -17,12 +19,13 @@ import com.example.trainapp.di.RetrofitClient
 import com.example.trainapp.ui.viewmodel.TrainViewModel
 import kotlinx.coroutines.launch
 import android.view.inputmethod.InputMethodManager
-import androidx.appcompat.app.AlertDialog
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.CompositeDateValidator
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,6 +53,12 @@ class Search : AppCompatActivity() { // activity ne suffisait pas pour utiliser 
                 showDateChangeAlert(newTimestamp)
             }
         }
+
+        findViewById<Button>(R.id.btn_select_time).setOnClickListener {
+            showTimePicker()
+        }
+// Initialiser le texte du bouton avec la valeur par défaut du ViewModel (06:00)
+        findViewById<Button>(R.id.btn_select_time).text = String.format("%02d:%02d", viewModel.selectedHour, viewModel.selectedMinute)
 
         val btnDate = findViewById<Button>(R.id.btn_select_date)
         btnDate.setOnClickListener {
@@ -130,7 +139,13 @@ class Search : AppCompatActivity() { // activity ne suffisait pas pour utiliser 
         val fromId = fromId
         val toId = toId
 
+        changeButtonVisibility()
+
         if (fromId != null && toId != null) {
+            if (fromId != viewModel.lastFromId || toId != viewModel.lastToId) { // permet de changer de gare sans garder les anciens résultats
+                viewModel.clearHistory()
+            }
+
             viewModel.setFromTo(fromId, toId)
             viewModel.findJourneys(fromId, toId)
         }
@@ -166,19 +181,56 @@ private fun showDatePicker() {
         val sdf = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
         val displayFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
+        findViewById<Button>(R.id.btn_select_date).text = displayFormat.format(Date(selection))
+
         val date = Date(selection)
         val formattedDate = sdf.format(date)
 
         findViewById<Button>(R.id.btn_select_date).text = displayFormat.format(date)
 
-        // On sauvegarde les deux formats dans le ViewModel
-        viewModel.setDateTime(formattedDate, selection)
+        if (viewModel.selectedTimestamp != selection) {
+            viewModel.clearHistory()
+        }
+
+        viewModel.updateDateTimeFromComponents(selection, viewModel.selectedHour, viewModel.selectedMinute)
 
         searchJourneys()
     }
 
     datePicker.show(supportFragmentManager, "DATE_PICKER")
 }
+
+    private fun showTimePicker() {
+        // On prend l'heure actuelle du ViewModel ou 6h par défaut
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setHour(viewModel.selectedHour)
+            .setMinute(viewModel.selectedMinute)
+            .setTitleText("Heure de départ")
+            .build()
+
+        picker.addOnPositiveButtonClickListener {
+            val hour = picker.hour
+            val minute = picker.minute
+
+            // Mise à jour de l'UI
+            val formattedTime = String.format("%02d:%02d", hour, minute)
+            findViewById<Button>(R.id.btn_select_time).text = formattedTime
+
+            // Mise à jour du ViewModel
+            viewModel.setTime(hour, minute)
+
+            // Si aucune date n'était sélectionnée, on prend aujourd'hui par défaut pour lancer la recherche
+            if (viewModel.selectedTimestamp == null) {
+                val today = MaterialDatePicker.todayInUtcMilliseconds()
+                viewModel.updateDateTimeFromComponents(today, hour, minute)
+                // Mise à jour visuelle du bouton date aussi
+                val df = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                findViewById<Button>(R.id.btn_select_date).text = df.format(Date(today))
+            }
+        }
+        picker.show(supportFragmentManager, "TIME_PICKER")
+    }
 
     private fun showDateChangeAlert(newTimestamp: Long) {
         val displayFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
@@ -199,5 +251,15 @@ private fun showDatePicker() {
             }
             .setNegativeButton("Annuler", null)
             .show()
+    }
+
+    private fun changeButtonVisibility() {
+        val btnPrev = findViewById<View>(R.id.btn_prev_time)
+        val btnNext = findViewById<View>(R.id.btn_next_time)
+
+        val visibility = if (fromId != null && toId != null && viewModel.selectedDateTime != null) View.VISIBLE else View.GONE
+
+        btnPrev.visibility = visibility
+        btnNext.visibility = visibility
     }
 }

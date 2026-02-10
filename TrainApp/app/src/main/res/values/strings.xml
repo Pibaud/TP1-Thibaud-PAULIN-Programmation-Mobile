@@ -6,4 +6,5 @@
     <string name="search_today">Aujourd\'hui</string>
     <string name="search_next_time">Trajets suivants</string>
     <string name="search_prev_time">Trajets précédents</string>
+    <string name="start_hour">06:00</string>
 </resources>
