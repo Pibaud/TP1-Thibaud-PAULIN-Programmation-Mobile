@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Agenda</string>
+    <string name="noEvent">Aucun événement de prévu ce jour-ci</string>
+    <string name="event_title">Titre de l\'événement</string>
+    <string name="event_desc">Description de l\'événement</string>
+    <string name="all_day">Toute la journée</string>
+    <string name="pick_time">Choisir une heure</string>
+    <string name="delete_event">Supprimer l\'événement</string>
+</resources>
