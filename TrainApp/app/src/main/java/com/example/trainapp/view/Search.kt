@@ -135,7 +135,7 @@ class Search : AppCompatActivity() { // activity ne suffisait pas pour utiliser 
                     val names = places.map { place ->
                         when (place.type) {
                             "administrative_region" -> place.name
-                            "stop_area" -> place.name.replace(Regex("\\s\\(.*\\)"), "").trim()
+                            "stop_area" -> place.name.replace(Regex("\\s\\(.*\\)"), "").trim() // pour enlever les codes postaux
                             else -> place.name
                         }
                     }
